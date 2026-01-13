@@ -1,0 +1,80 @@
+<idea-plugin>
+    <id>com.github.ontisme.onlog</id>
+    <name>OnLog - Multi-Channel Log Viewer</name>
+    <vendor email="support@example.com" url="https://github.com/ontisme/onlog">ontisme</vendor>
+
+    <description><![CDATA[
+    Structured log viewer for Go applications using onlog/zerolog.
+    Zero-config: Just run your app from IDE and see logs instantly!
+
+    <h3>Features</h3>
+    <ul>
+        <li>Zero-config: Import onlog, run your app, see logs</li>
+        <li>Auto-detection of log output via Console Filter</li>
+        <li>Smart auto-scroll with manual override</li>
+        <li>Filter by source, category, level, and tags</li>
+        <li>Color-coded log levels (DEBUG, INFO, WARN, ERROR)</li>
+        <li>Clickable caller info for source navigation</li>
+        <li>Search across all logs</li>
+        <li>Source tree with hierarchical categories</li>
+        <li>Multiple views: Use IntelliJ's native split/tab features</li>
+    </ul>
+
+    <h3>Usage</h3>
+    <ol>
+        <li>Import the onlog Go library in your application</li>
+        <li>Use <code>onlog.L("source").Info().Msg("message")</code></li>
+        <li>Run your application from IDE - logs appear in OnLog window</li>
+        <li>Right-click OnLog tab for split/duplicate options</li>
+    </ol>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>2.0.0</h3>
+    <ul>
+        <li>Simplified UI: Clean single-view layout</li>
+        <li>Removed internal tabs - use IntelliJ's native split/duplicate</li>
+        <li>Improved Source Tree with categories</li>
+        <li>Level multi-select checkboxes</li>
+        <li>Better Follow button with status bar</li>
+    </ul>
+    <h3>1.1.0</h3>
+    <ul>
+        <li>Powered by zerolog with beautiful console output</li>
+        <li>Clickable caller info for source navigation</li>
+        <li>Smart auto-scroll with Follow toggle</li>
+    </ul>
+    <h3>1.0.0</h3>
+    <ul>
+        <li>Initial release</li>
+        <li>Filter panel with source/category/level/tags</li>
+    </ul>
+    ]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool Window -->
+        <toolWindow id="OnLog"
+                    secondary="true"
+                    anchor="bottom"
+                    icon="AllIcons.Toolwindows.ToolWindowMessages"
+                    factoryClass="com.github.ontisme.onlog.ui.OnLogToolWindowFactory"/>
+
+        <!-- Project Service -->
+        <projectService serviceImplementation="com.github.ontisme.onlog.service.OnLogService"/>
+
+        <!-- Run Console Filter (auto-detection) -->
+        <consoleFilterProvider implementation="com.github.ontisme.onlog.service.OnLogConsoleFilterProvider"/>
+    </extensions>
+
+    <actions>
+        <group id="OnLog.ToolbarActions" text="OnLog Actions">
+            <action id="OnLog.Clear"
+                    class="com.github.ontisme.onlog.ui.actions.ClearAction"
+                    text="Clear"
+                    description="Clear log entries"
+                    icon="AllIcons.Actions.GC"/>
+        </group>
+    </actions>
+</idea-plugin>
