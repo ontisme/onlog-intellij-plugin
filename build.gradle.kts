@@ -5,7 +5,14 @@ plugins {
 }
 
 group = "com.github.ontisme"
-version = "1.0.0"
+version = "1.1.0"
+
+// Configure Java toolchain - Java 17 required for IntelliJ 2024.1
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
 
 repositories {
     mavenCentral()

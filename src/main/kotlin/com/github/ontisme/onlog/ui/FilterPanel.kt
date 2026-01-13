@@ -11,6 +11,7 @@ import com.intellij.util.ui.JBUI
 import java.awt.FlowLayout
 import javax.swing.*
 import javax.swing.event.DocumentEvent
+import java.awt.event.ActionListener
 
 /**
  * Filter panel with multi-select level checkboxes, tag input, and search field.
@@ -21,6 +22,7 @@ class FilterPanel(
 
     // Level checkboxes (multi-select)
     private val levelCheckboxes: Map<LogLevel, JCheckBox>
+    private val followButton: JToggleButton
     private val tagField: SearchTextField
     private val searchField: SearchTextField
     private var availableTags: Set<String> = emptySet()
@@ -32,14 +34,14 @@ class FilterPanel(
         border = JBUI.Borders.empty(4, 8)
 
         // Level label
-        add(JLabel("Level:"))
+        add(JLabel("等級:"))
 
         // Level checkboxes (all checked by default)
         levelCheckboxes = LogLevel.entries.associateWith { level ->
             JCheckBox(level.label).apply {
                 isSelected = true
                 foreground = when (level) {
-                    LogLevel.DEBUG -> JBColor.GRAY
+                    LogLevel.DEBUG -> JBColor(0x0066CC, 0x58A6FF)  // 藍色
                     LogLevel.INFO -> JBColor(0x3B7A3B, 0x6AAF6A)  // Green
                     LogLevel.WARN -> JBColor(0xB58900, 0xD4A017)  // Yellow/Orange
                     LogLevel.ERROR -> JBColor(0xB71C1C, 0xE57373) // Red
@@ -49,12 +51,22 @@ class FilterPanel(
         }
         levelCheckboxes.values.forEach { add(it) }
 
+        // Follow button (跟隨) - right after level checkboxes
+        followButton = JToggleButton().apply {
+            icon = AllIcons.RunConfigurations.Scroll_down
+            isSelected = true
+            toolTipText = "跟隨"
+            preferredSize = JBUI.size(28, 24)
+            isFocusable = false
+        }
+        add(followButton)
+
         add(Box.createHorizontalStrut(16))
 
         // Tags filter
-        add(JLabel("Tags:"))
+        add(JLabel("標籤:"))
         tagField = SearchTextField(false).apply {
-            textEditor.emptyText.text = "e.g. error,slow"
+            textEditor.emptyText.text = "例如: error,slow"
             textEditor.columns = 15
             addDocumentListener(object : DocumentAdapter() {
                 override fun textChanged(e: DocumentEvent) {
@@ -69,7 +81,7 @@ class FilterPanel(
         // Search
         add(JLabel(AllIcons.Actions.Search))
         searchField = SearchTextField(true).apply {
-            textEditor.emptyText.text = "Search logs..."
+            textEditor.emptyText.text = "搜尋日誌..."
             textEditor.columns = 20
             addDocumentListener(object : DocumentAdapter() {
                 override fun textChanged(e: DocumentEvent) {
@@ -138,5 +150,24 @@ class FilterPanel(
         levelCheckboxes.forEach { (level, checkbox) ->
             checkbox.isSelected = level in levels
         }
+    }
+
+    /**
+     * Add listener to follow button.
+     */
+    fun addFollowButtonListener(listener: ActionListener) {
+        followButton.addActionListener(listener)
+    }
+
+    /**
+     * Get follow button selected state.
+     */
+    fun isFollowEnabled(): Boolean = followButton.isSelected
+
+    /**
+     * Set follow button selected state.
+     */
+    fun setFollowEnabled(enabled: Boolean) {
+        followButton.isSelected = enabled
     }
 }

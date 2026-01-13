@@ -15,6 +15,7 @@ import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.*
+import com.intellij.ui.JBColor
 
 /**
  * Main panel for the OnLog tool window.
@@ -31,8 +32,8 @@ class OnLogToolWindowPanel(
     private val filterPanel: FilterPanel
     private val sourceTree: SourceTree
     private val logConsole: LogConsole
+    private val fieldsPanel: FieldsDetailPanel
     private val statusLabel: JBLabel
-    private val followButton: JToggleButton
     private lateinit var logScrollPane: JBScrollPane
 
     // Local filter
@@ -50,15 +51,12 @@ class OnLogToolWindowPanel(
         }
 
         logConsole = LogConsole(project)
-        statusLabel = JBLabel("Ready")
+        fieldsPanel = FieldsDetailPanel()
+        statusLabel = JBLabel("就緒")
 
-        // Follow button
-        followButton = JToggleButton("Follow", true).apply {
-            icon = AllIcons.RunConfigurations.Scroll_down
-            isSelected = true
-            addActionListener {
-                logConsole.setAutoScroll(isSelected)
-            }
+        // Setup follow button listener (in filterPanel)
+        filterPanel.addFollowButtonListener {
+            logConsole.setAutoScroll(filterPanel.isFollowEnabled())
         }
 
         // Setup layout
@@ -73,8 +71,13 @@ class OnLogToolWindowPanel(
         // Setup auto-scroll listener
         logConsole.setAutoScrollListener { enabled ->
             SwingUtilities.invokeLater {
-                followButton.isSelected = enabled
+                filterPanel.setFollowEnabled(enabled)
             }
+        }
+
+        // Setup selection listener for fields detail panel
+        logConsole.setSelectionListener { entry ->
+            fieldsPanel.showEntry(entry)
         }
 
         // Initial state
@@ -85,28 +88,33 @@ class OnLogToolWindowPanel(
     }
 
     private fun setupLayout() {
+        // Border color for separators
+        val borderColor = JBColor.border()
+
         // === Left Panel: Source Tree ===
         val sourceHeader = JPanel(BorderLayout()).apply {
-            add(JBLabel("Sources").apply {
+            add(JBLabel("來源").apply {
                 border = JBUI.Borders.empty(4, 8)
             }, BorderLayout.WEST)
 
             // Select All / Deselect All buttons
             val buttonPanel = JPanel(FlowLayout(FlowLayout.RIGHT, 2, 0)).apply {
                 add(JButton(AllIcons.Actions.Selectall).apply {
-                    toolTipText = "Select All"
+                    toolTipText = "全選"
                     preferredSize = JBUI.size(24, 24)
                     isFocusable = false
                     addActionListener { sourceTree.selectAll() }
                 })
                 add(JButton(AllIcons.Actions.Unselectall).apply {
-                    toolTipText = "Deselect All"
+                    toolTipText = "取消全選"
                     preferredSize = JBUI.size(24, 24)
                     isFocusable = false
                     addActionListener { sourceTree.deselectAll() }
                 })
             }
             add(buttonPanel, BorderLayout.EAST)
+            // Bottom border for header
+            border = BorderFactory.createMatteBorder(0, 0, 1, 0, borderColor)
         }
 
         val leftPanel = JPanel(BorderLayout()).apply {
@@ -114,29 +122,45 @@ class OnLogToolWindowPanel(
             add(JBScrollPane(sourceTree), BorderLayout.CENTER)
             preferredSize = JBUI.size(200, -1)
             minimumSize = JBUI.size(150, -1)
+            // Right border for left panel
+            border = BorderFactory.createMatteBorder(0, 0, 0, 1, borderColor)
         }
 
-        // === Right Panel: Filter + Console ===
+        // === Right Panel: Filter + Console + Fields ===
         logScrollPane = JBScrollPane(logConsole)
         logConsole.setupScrollListener(logScrollPane)
 
-        // Bottom bar with Follow button and status
-        val bottomBar = JPanel(BorderLayout()).apply {
-            border = JBUI.Borders.empty(2, 4)
+        // Filter panel with bottom border and status label on the right
+        val filterWrapper = JPanel(BorderLayout()).apply {
+            add(filterPanel, BorderLayout.CENTER)
+            add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 4)).apply {
+                add(statusLabel)
+            }, BorderLayout.EAST)
+            border = BorderFactory.createMatteBorder(0, 0, 1, 0, borderColor)
+        }
 
-            // Left: Follow button
-            add(JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply {
-                add(followButton)
-            }, BorderLayout.WEST)
+        // Console panel (no bottom bar needed)
+        val consolePanel = JPanel(BorderLayout()).apply {
+            add(logScrollPane, BorderLayout.CENTER)
+        }
 
-            // Right: Status
-            add(statusLabel, BorderLayout.EAST)
+        // Fields panel with minimum height and top border
+        fieldsPanel.apply {
+            preferredSize = JBUI.size(-1, 150)
+            minimumSize = JBUI.size(-1, 100)
+            border = BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor)
+        }
+
+        // Vertical splitter: Console (top) + Fields (bottom)
+        val consoleSplitter = JBSplitter(true, 0.7f).apply {
+            firstComponent = consolePanel
+            secondComponent = fieldsPanel
+            dividerWidth = 3
         }
 
         val rightPanel = JPanel(BorderLayout()).apply {
-            add(filterPanel, BorderLayout.NORTH)
-            add(logScrollPane, BorderLayout.CENTER)
-            add(bottomBar, BorderLayout.SOUTH)
+            add(filterWrapper, BorderLayout.NORTH)
+            add(consoleSplitter, BorderLayout.CENTER)
         }
 
         // === Main Splitter ===
@@ -183,7 +207,7 @@ class OnLogToolWindowPanel(
 
     private fun updateStatus() {
         val logCount = logConsole.getEntryCount()
-        statusLabel.text = "$logCount logs"
+        statusLabel.text = "$logCount 條日誌"
         statusLabel.icon = AllIcons.General.InspectionsOK
     }
 

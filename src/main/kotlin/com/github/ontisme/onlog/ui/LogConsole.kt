@@ -33,6 +33,7 @@ class LogConsole(private val project: Project) : JBTable() {
     private val tableModel = LogTableModel()
     private var autoScroll = true
     private var autoScrollListener: ((Boolean) -> Unit)? = null
+    private var selectionListener: ((LogEntry?) -> Unit)? = null
 
     // Column indices
     companion object {
@@ -51,9 +52,9 @@ class LogConsole(private val project: Project) : JBTable() {
         setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         setShowGrid(false)
         rowHeight = JBUI.scale(20)
-        tableHeader.reorderingAllowed = false
+        tableHeader.reorderingAllowed = true  // 允許拖曳欄位排序
 
-        // Set column widths
+        // Set column widths (Fields 欄位不設 maxWidth，完整顯示內容)
         columnModel.getColumn(COL_TIME).preferredWidth = 90
         columnModel.getColumn(COL_TIME).maxWidth = 100
         columnModel.getColumn(COL_LEVEL).preferredWidth = 40
@@ -65,7 +66,7 @@ class LogConsole(private val project: Project) : JBTable() {
         columnModel.getColumn(COL_CALLER).preferredWidth = 100
         columnModel.getColumn(COL_CALLER).maxWidth = 150
         columnModel.getColumn(COL_MESSAGE).preferredWidth = 400
-        columnModel.getColumn(COL_FIELDS).preferredWidth = 200
+        columnModel.getColumn(COL_FIELDS).preferredWidth = 300  // Fields 完整顯示
         columnModel.getColumn(COL_TAGS).preferredWidth = 100
 
         // Custom renderer
@@ -105,6 +106,15 @@ class LogConsole(private val project: Project) : JBTable() {
                 }
             }
         })
+
+        // Selection listener for fields detail panel
+        selectionModel.addListSelectionListener { e ->
+            if (!e.valueIsAdjusting) {
+                val row = selectedRow
+                val entry = if (row >= 0) tableModel.getEntry(row) else null
+                selectionListener?.invoke(entry)
+            }
+        }
     }
 
     /**
@@ -167,6 +177,10 @@ class LogConsole(private val project: Project) : JBTable() {
         autoScrollListener = listener
     }
 
+    fun setSelectionListener(listener: (LogEntry?) -> Unit) {
+        selectionListener = listener
+    }
+
     fun addEntries(entries: List<LogEntry>, filter: LogFilter) {
         val filtered = if (filter.isEmpty) entries else entries.filter { filter.matches(it) }
         if (filtered.isEmpty()) return
@@ -213,7 +227,7 @@ class LogConsole(private val project: Project) : JBTable() {
      */
     private class LogTableModel : AbstractTableModel() {
         private val entries = mutableListOf<LogEntry>()
-        private val columns = arrayOf("Time", "Level", "Source", "Category", "Caller", "Message", "Fields", "Tags")
+        private val columns = arrayOf("時間", "等級", "來源", "分類", "呼叫位置", "訊息", "欄位", "標籤")
 
         override fun getRowCount(): Int = entries.size
         override fun getColumnCount(): Int = columns.size
@@ -290,7 +304,7 @@ class LogConsole(private val project: Project) : JBTable() {
                 when (column) {
                     COL_LEVEL -> {
                         foreground = when (entry?.level) {
-                            LogLevel.DEBUG -> JBColor.GRAY
+                            LogLevel.DEBUG -> JBColor(Color(0, 102, 204), Color(88, 166, 255))  // 藍色
                             LogLevel.INFO -> JBColor(Color(0, 128, 0), Color(100, 200, 100))
                             LogLevel.WARN -> JBColor(Color(200, 150, 0), Color(255, 200, 100))
                             LogLevel.ERROR -> JBColor.RED
