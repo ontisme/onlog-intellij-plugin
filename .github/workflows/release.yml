@@ -10,6 +10,9 @@ on:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +35,13 @@ jobs:
 
       - name: Build Plugin
         run: gradle buildPlugin
+
+      - name: List build output
+        run: |
+          echo "=== Build distributions ==="
+          ls -la build/distributions/ || echo "No distributions directory"
+          echo "=== Find zip files ==="
+          find . -name "*.zip" -type f 2>/dev/null || echo "No zip files found"
 
       - name: Get version from tag
         id: version
